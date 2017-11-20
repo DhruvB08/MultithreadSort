@@ -1,0 +1,3 @@
+Initial PID: 19820
+PIDS of all child processes: 
+Total number of processes: 4
