@@ -1,85 +1,54 @@
 #define _GNU_SOURCE
 
+#include <semaphore.h>
+#include <pthread.h>
 #include <stddef.h>
 #include "mergesort.c"
 
+int pc = 0; 
+pid_t p;
 
-int main(int argc, char** argv) {
-	char readDirName[1000];
-	char outputDirName[1000];
-	char sortColumn[1000];
-	
-	//program called using -c flag only
-	if (argc == 3) {
-		if (strcmp(argv[1], "-c") != 0) {
-			printf("Invalid arguements to sort\n");
-			return 0;
-		}
+// allocates memory for subpaths and also appends /
+char* pathcat(const char* str1,const char* str2){ 
+    char* subpath;  
+    subpath=(char*)malloc(strlen(str1)+strlen(str2)+ 3);
 
-		strcpy(sortColumn, argv[2]);
-		getcwd(readDirName, sizeof(readDirName));
-		getcwd(outputDirName, sizeof(outputDirName));
-		//printf("%s\n", readDirName);
+    if(subpath == NULL){
+        printf("failed to allocate memory\n");  
+        exit(1);  
+    }  
+	strcpy(subpath,str1);
+	strcat(subpath,"/");   
+	strcat(subpath,str2);  
+	return subpath;  
+} 
+
+void pcounter(char* path){ // , char* colsort
+    DIR *dir;
+    dir = opendir(path);
+    struct dirent *sd;
+    
+    if(dir == NULL) 
+    {
+        printf("Error: Directory N/A");
+        exit(1);
+    }
+    
+    while ((sd = readdir(dir)) != NULL){
+	char* subpath;
+	int length = strlen(sd->d_name); 
+	subpath = pathcat(path, sd->d_name);
+	//struct stat s;
+	//stat(subpath, &s);
+       
+        if(((sd->d_type) == DT_DIR) && (strcmp(sd->d_name, ".") !=0) && (strcmp(sd->d_name, "..") !=0)){
+            pc++;
+            pcounter(subpath); // , colsort
+        }else if(((sd->d_type) == DT_REG) && (strncmp(sd->d_name+length-4, ".csv", 4) == 0)){
+            pc++;
 	}
-
-	//program called using -c and -d flags
-	else if (argc == 5) {
-		if (strcmp(argv[1], "-c") != 0 || strcmp(argv[3], "-d") != 0) {
-			printf("Invalid arguements to sort\n");
-			return 0;
-		}
-
-		strcpy(sortColumn, argv[2]);
-		strcpy(readDirName, argv[4]);
-		getcwd(outputDirName, sizeof(outputDirName));
-		//printf("%s\n", readDirName);
-	}
-
-	//program called using -c, -d, and -o flags
-	else if (argc == 7) {
-		if (strcmp(argv[1], "-c") != 0 || strcmp(argv[3], "-d") != 0 || strcmp(argv[5], "-o") != 0) {
-			printf("Invalid arguements to sort\n");
-			return 0;
-		}
-
-		strcpy(sortColumn, argv[2]);
-		strcpy(readDirName, argv[4]);
-		strcpy(outputDirName, argv[6]);
-	}
-
-	//program called with unrecognized number of arguements
-	else {
-		printf("Invalid arguements to sort\n");
-		return 0;
-	}
-
-	int root = getpid();
-
-	/*
-	if (getpid() == root) {
-		printf("Initial PID: %d\n", root);
-		printf("PIDS of all child processes: ");
-	}
-	*/
-
-	goThroughDir(readDirName, outputDirName, sortColumn);
-	
-	if (getpid() == root) {
-		printf("Initial PID: %d\n", root);
-		
-		printf("PIDS of all child processes: ");
-		int i;
-		for (i = 0; i < pi; i++) {
-			printf("%d, ", pids[i]);
-		}
-
-		printf("\nTotal number of processes: %d\n", countForks + 1);
-		//printf("pi: %d\n", pi);
-	}
-	
-	return 0;
+    }
 }
-
 
 void goThroughDir(char readDirName[], char outputDirName[], char sortColumn[]) {
 	//printf("read: %s, write: %s, sort: %s\n", readDirName, outputDirName, sortColumn);
@@ -147,7 +116,7 @@ void goThroughDir(char readDirName[], char outputDirName[], char sortColumn[]) {
 		}
 
 		if (pid == 0) {
-			wait();
+			//wait();
 		}
 
 		closedir(dir);
@@ -347,4 +316,81 @@ void trim(char * word) {
 	}
 
 	word[index + 1] = '\0';
+}
+
+int main(int argc, char** argv) {
+	char readDirName[1000];
+	char outputDirName[1000];
+	char sortColumn[1000];
+	
+	//program called using -c flag only
+	if (argc == 3) {
+		if (strcmp(argv[1], "-c") != 0) {
+			printf("Invalid arguements to sort\n");
+			return 0;
+		}
+
+		strcpy(sortColumn, argv[2]);
+		getcwd(readDirName, sizeof(readDirName));
+		getcwd(outputDirName, sizeof(outputDirName));
+		//printf("%s\n", readDirName);
+	}
+
+	//program called using -c and -d flags
+	else if (argc == 5) {
+		if (strcmp(argv[1], "-c") != 0 || strcmp(argv[3], "-d") != 0) {
+			printf("Invalid arguements to sort\n");
+			return 0;
+		}
+
+		strcpy(sortColumn, argv[2]);
+		strcpy(readDirName, argv[4]);
+		getcwd(outputDirName, sizeof(outputDirName));
+		//printf("%s\n", readDirName);
+	}
+
+	//program called using -c, -d, and -o flags
+	else if (argc == 7) {
+		if (strcmp(argv[1], "-c") != 0 || strcmp(argv[3], "-d") != 0 || strcmp(argv[5], "-o") != 0) {
+			printf("Invalid arguements to sort\n");
+			return 0;
+		}
+
+		strcpy(sortColumn, argv[2]);
+		strcpy(readDirName, argv[4]);
+		strcpy(outputDirName, argv[6]);
+	}
+
+	//program called with unrecognized number of arguements
+	else {
+		printf("Invalid arguements to sort\n");
+		return 0;
+	}
+
+	int root = getpid();
+	int troot = pthread_self();
+	printf("Initial TID: %d\n", troot); // just to test out initial thread
+
+	/*
+	if (getpid() == root) {
+		printf("Initial PID: %d\n", root);
+		printf("PIDS of all child processes: ");
+	}
+	*/
+
+	goThroughDir(readDirName, outputDirName, sortColumn);
+	
+	if (getpid() == root) {
+		printf("Initial PID: %d\n", root);
+		
+		printf("PIDS of all child processes: ");
+		int i;
+		for (i = 0; i < pi; i++) {
+			printf("%d, ", pids[i]);
+		}
+		pcounter(".");
+		printf("\nTotal # processes: %d\n", pc+1);
+	}
+	
+	return 0;
 }
