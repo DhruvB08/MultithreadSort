@@ -324,44 +324,113 @@ int main(int argc, char** argv) {
 	char sortColumn[1000];
 	
 	//program called using -c flag only
+	//Cannot be just -d or -o
 	if (argc == 3) {
 		if (strcmp(argv[1], "-c") != 0) {
-			printf("Invalid arguements to sort\n");
+			printf("Invalid arguments to sort\n");
 			return 0;
 		}
-
 		strcpy(sortColumn, argv[2]);
 		getcwd(readDirName, sizeof(readDirName));
 		getcwd(outputDirName, sizeof(outputDirName));
-		//printf("%s\n", readDirName);
 	}
 
-	//program called using -c and -d flags
+	//program called using 2 flags:
+	// -c -d, -c -o, -d -c, -o -c
 	else if (argc == 5) {
-		if (strcmp(argv[1], "-c") != 0 || strcmp(argv[3], "-d") != 0) {
-			printf("Invalid arguements to sort\n");
+		if(strcmp(argv[1], "-c") ==0){ // 1st flag "-c"
+			if(strcmp(argv[3], "-d") ==0){
+				strcpy(sortColumn, argv[2]);
+				strcpy(readDirName, argv[4]);
+				getcwd(outputDirName, sizeof(outputDirName));
+				//printf("%s\n", readDirName)
+			}else if(strcmp(argv[3], "-o") ==0){
+				strcpy(sortColumn, argv[2]);
+				strcpy(outputDirName, argv[4]);
+				getcwd(readDirName, sizeof(readDirName));
+				//printf("%s\n", readDirName)
+			}else{
+			printf("Invalid arguments to sort\n");
+			return 0;
+			}
+		}else if(strcmp(argv[3], "-c") ==0){ // 2nd flag "-c"
+			if(strcmp(argv[1], "-d") ==0){
+				strcpy(readDirName, argv[2]);
+				strcpy(sortColumn, argv[4]);
+				getcwd(outputDirName, sizeof(outputDirName));
+				//printf("%s\n", readDirName)
+			}else if(strcmp(argv[1], "-o") ==0){
+				strcpy(outputDirName, argv[2]);
+				strcpy(sortColumn, argv[4]);
+				getcwd(readDirName, sizeof(readDirName));
+				//printf("%s\n", readDirName)
+			}else{
+			printf("Invalid arguments to sort\n");
+			return 0;
+			}
+		}else{
+			printf("Invalid arguments to sort\n");
 			return 0;
 		}
-
-		strcpy(sortColumn, argv[2]);
-		strcpy(readDirName, argv[4]);
-		getcwd(outputDirName, sizeof(outputDirName));
-		//printf("%s\n", readDirName);
 	}
 
-	//program called using -c, -d, and -o flags
+	// program called using 3 flags
+	// -c -d -o, -c -o -d
+	// -d -o -c, -d -c -o
+	// -o -d -c, -o -c -d
 	else if (argc == 7) {
-		if (strcmp(argv[1], "-c") != 0 || strcmp(argv[3], "-d") != 0 || strcmp(argv[5], "-o") != 0) {
-			printf("Invalid arguements to sort\n");
+		if(strcmp(argv[1], "-c") ==0){ // 1st flag "-c"
+			if(strcmp(argv[3], "-d") ==0 && strcmp(argv[5], "-o") ==0){
+				strcpy(sortColumn, argv[2]);
+				strcpy(readDirName, argv[4]);
+				strcpy(outputDirName, argv[6]);
+				//printf("%s\n", readDirName)
+			}else if(strcmp(argv[3], "-o") ==0 && strcmp(argv[5], "-d") ==0){
+				strcpy(sortColumn, argv[2]);
+				strcpy(outputDirName, argv[4]);
+				strcpy(readDirName, argv[6]);
+				//printf("%s\n", readDirName)
+			}else{
+			printf("Invalid arguments to sort\n");
+			return 0;
+			}
+		}else if(strcmp(argv[1], "-d") ==0){ // 1st flag "-d"
+			if(strcmp(argv[3], "-o") ==0 && strcmp(argv[5], "-c") ==0){
+				strcpy(readDirName, argv[2]);
+				strcpy(outputDirName, argv[4]);
+				strcpy(sortColumn, argv[6]);
+				//printf("%s\n", readDirName)
+			}else if(strcmp(argv[3], "-c") ==0 && strcmp(argv[5], "-o") ==0){
+				strcpy(readDirName, argv[2]);
+				strcpy(sortColumn, argv[4]);
+				strcpy(outputDirName, argv[6]);
+				//printf("%s\n", readDirName)
+			}else{
+			printf("Invalid arguments to sort\n");
+			return 0;
+			}
+		}else if(strcmp(argv[1], "-o") ==0){ // 1st flag "-o"
+			if(strcmp(argv[3], "-d") ==0 && strcmp(argv[5], "-c") ==0){
+				strcpy(outputDirName, argv[2]);
+				strcpy(readDirName, argv[4]);
+				strcpy(sortColumn, argv[6]);
+				//printf("%s\n", readDirName)
+			}else if(strcmp(argv[3], "-c") ==0 && strcmp(argv[5], "-d") ==0){
+				strcpy(outputDirName, argv[2]);
+				strcpy(sortColumn, argv[4]);
+				strcpy(readDirName, argv[6]);
+				//printf("%s\n", readDirName)
+			}else{
+			printf("Invalid arguments to sort\n");
+			return 0;
+			}
+		}else{
+			printf("Invalid arguments to sort\n");
 			return 0;
 		}
-
-		strcpy(sortColumn, argv[2]);
-		strcpy(readDirName, argv[4]);
-		strcpy(outputDirName, argv[6]);
 	}
 
-	//program called with unrecognized number of arguements
+	//program called with unrecognized number of arguments
 	else {
 		printf("Invalid arguements to sort\n");
 		return 0;
