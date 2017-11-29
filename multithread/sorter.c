@@ -129,10 +129,17 @@ int main(int argc, char** argv) {
 	globalListStart = createRow();
 	globalListEnd = globalListStart;
 
-	char parms[2][1000];
+	struct argstruct* temp = (struct argstruct*)malloc(sizeof(struct argstruct));
+				
+	strcpy(temp->arg1, readDirName);
+	strcpy(temp->arg2, sortColumn);
+	
+	/*char parms[2][1000];
 	strcpy(parms[0], readDirName);
 	strcpy(parms[1], sortColumn);
-	goThroughDir(parms);
+	*/
+	goThroughDir((void*)temp);
+
 	
 	char writeFile[99999];
 	strcpy(writeFile, outputDirName);
@@ -176,25 +183,27 @@ int main(int argc, char** argv) {
 void* goThroughCSV(void * params) {
 	//increment thread counter
 	//add thread id to array
-
+	struct argstruct *temp = params;
+	
 	char readName[99999];
-	char **	temp = (char **) params;
-	strcat(readName, temp[0]);
+	strcat(readName, temp->arg1);
 	strcat(readName, "/");
-	strcat(readName, temp[1]);
-
-	sort(readName, temp[2], temp[1]);
+	strcat(readName, temp->arg2);
+	
+	sort(readName, temp->arg3, temp->arg2);
 }
 
 void* goThroughDir(void * dirParams) {
 
-	char ** temp = (char **) dirParams;
+	struct argstruct* temp = dirParams;
+	
+	//char ** temp = (char **) dirParams;
 
 	char readDirName[99999];
-	strcpy(readDirName, temp[0]);
+	strcpy(readDirName, temp->arg1);
 
 	char sortColumn[99999];
-	strcpy(sortColumn, temp[1]);
+	strcpy(sortColumn, temp->arg2);
 
 	DIR *dir;
 	struct dirent *entry;
@@ -210,18 +219,24 @@ void* goThroughDir(void * dirParams) {
 
 			//printf("entryName: %s, entry: %s", entryName, entry);
 			if (isCSV(entryName)) {
-
+				struct argstruct* csvtemp = (struct argstruct*)malloc(sizeof(struct argstruct));
+				
+				strcpy(csvtemp->arg1, readDirName);
+				strcpy(csvtemp->arg2, entryName);
+				strcpy(csvtemp->arg3, sortColumn);
+				/*
 				char params[3][99999];
 				strcpy(params[0], readDirName);
 				strcpy(params[1], entryName);
 				strcpy(params[2], sortColumn);
+				*/
 				
 				sem_wait(&semaphore);
 				pthread_t tid = i;
 				i++;
 				sem_post(&semaphore);
 
-				pthread_create(&tid, NULL, &goThroughCSV, params);
+				pthread_create(&tid, NULL, &goThroughCSV, (void*)csvtemp);
 			}
 
 			else if (okayDir(entryName)) {
@@ -233,17 +248,21 @@ void* goThroughDir(void * dirParams) {
 				strcat(readDir, "/");
 				strcat(readDir, entryName);
 
+				struct argstruct* dtemp = (struct argstruct*)malloc(sizeof(struct argstruct));
+				
+				strcpy(dtemp->arg1, readDir);
+				strcpy(dtemp->arg2, sortColumn);
 				//create thread, pass goThroughDir(readDir, sortColumn);
-				char params[2][99999];
+				/*char params[2][99999];
 				strcpy(params[0], readDirName);
-				strcpy(params[1], sortColumn);
+				strcpy(params[1], sortColumn);*/
 
 				sem_wait(&semaphore);
 				pthread_t tid = i;
 				i++;
 				sem_post(&semaphore);
 
-				pthread_create(&tid, NULL, &goThroughDir, params);
+				pthread_create(&tid, NULL, &goThroughDir, (void*)dtemp);
 			} 
 
 			closedir(dir);
