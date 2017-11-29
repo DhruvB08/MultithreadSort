@@ -124,14 +124,14 @@ int main(int argc, char** argv) {
 		return 0;
 	}
 
-	printf("initializing global\n");
+	//printf("initializing global\n");
 	//initialize globals
 	sem_init(&semaphore, 0, 1);
 	globalListStart = createRow();
 	globalListEnd = globalListStart;
-	printf("done initializing\n");
+	//printf("done initializing\n");
 
-	struct argstruct* temp = (struct argstruct*)malloc(sizeof(struct argstruct));			
+	struct argstruct *temp = (struct argstruct*)malloc(sizeof(struct argstruct));			
 	strcpy(temp->arg1, readDirName);
 	strcpy(temp->arg2, sortColumn);
 	
@@ -140,9 +140,9 @@ int main(int argc, char** argv) {
 	strcpy(parms[1], sortColumn);
 	*/
 	
-	printf("first gothroughdir about to be called\n");
+	//printf("first gothroughdir about to be called\n");
 	goThroughDir((void *) temp);
-	printf("gothroughdir all done in main\n");
+	//printf("gothroughdir all done in main\n");
 	
 	char writeFile[99999];
 	strcpy(writeFile, outputDirName);
@@ -178,7 +178,7 @@ int main(int argc, char** argv) {
 	printf("TIDS of all child threads: ");
 	//for loop to go through TID array
 
-	printf("\nTotal number of threads: ");
+	printf("\nTotal number of threads: \n");
 	return 0;
 }
 
@@ -208,19 +208,24 @@ void* goThroughDir(void * dirParams) {
 	char sortColumn[99999];
 	strcpy(sortColumn, temp->arg2);
 
+	//printf("%s\n", readDirName);
+//	printf("%s\n", sortColumn);
 
 	DIR *dir;
 	struct dirent *entry;
 
-	printf("about to open directory\n");
-	int i = 0;
+//	printf("about to open directory\n");
 	if ((dir = opendir(readDirName)) != NULL) {
 		//increment tid
 		//add tid to array
 
+		//printf("reading dir: %s\n", readDirName);
+
 		while ((entry = readdir(dir)) != NULL) {
 			char entryName[256];
 			strcpy(entryName, entry->d_name);
+
+			//printf("entry: %s\n", entryName);
 
 			//printf("entryName: %s, entry: %s", entryName, entry);
 			if (isCSV(entryName)) {
@@ -269,9 +274,9 @@ void* goThroughDir(void * dirParams) {
 
 				pthread_create(&tid, NULL, &goThroughDir, (void*)dtemp);
 			} 
-
-			closedir(dir);
 		}
+
+		closedir(dir);
 	}
 }
 

@@ -8,9 +8,9 @@
 #include <pthread.h>
 
 struct argstruct{
-	char* arg1;
-	char* arg2;
-	char* arg3;
+	char arg1[9999];
+	char arg2[9999];
+	char arg3[9999];
 };
 
 typedef struct row_ {
@@ -21,9 +21,7 @@ typedef struct row_ {
 	struct row_ *next;
 } row;
 
-int countForks = 0;
-int pids[99999];
-int pi = 0;
+int i = 0;
 
 int filesHave;
 int filesNeed;
