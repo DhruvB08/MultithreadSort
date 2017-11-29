@@ -7,6 +7,12 @@
 #include <semaphore.h>
 #include <pthread.h>
 
+struct argstruct{
+	char* arg1;
+	char* arg2;
+	char* arg3;
+};
+
 typedef struct row_ {
 	char **columns;
 	int numCols;
