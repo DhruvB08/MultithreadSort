@@ -1,144 +1,14 @@
 #define _GNU_SOURCE
 
+#include  <sys/wait.h>
+#include  <sys/types.h>
 #include <semaphore.h>
 #include <pthread.h>
 #include <stddef.h>
 #include "mergesort.c"
-/*
 
-int main(int argc, char** argv) {
-	char readDirName[1000];
-	char outputDirName[1000];
-	char sortColumn[1000];
-	
-	//program called using -c flag only
-	if (argc == 3) {
-		if (strcmp(argv[1], "-c") != 0) {
-			printf("Invalid arguements to sort\n");
-			return 0;
-		}
-
-		strcpy(sortColumn, argv[2]);
-		getcwd(readDirName, sizeof(readDirName));
-		getcwd(outputDirName, sizeof(outputDirName));
-		//printf("%s\n", readDirName);
-	}
-
-	//program called using -c and -d flags
-	else if (argc == 5) {
-		if (strcmp(argv[1], "-c") != 0 || strcmp(argv[3], "-d") != 0) {
-			printf("Invalid arguements to sort\n");
-			return 0;
-		}
-
-		strcpy(sortColumn, argv[2]);
-		strcpy(readDirName, argv[4]);
-		getcwd(outputDirName, sizeof(outputDirName));
-		//printf("%s\n", readDirName);
-	}
-
-	//program called using -c, -d, and -o flags
-	else if (argc == 7) {
-		if (strcmp(argv[1], "-c") != 0 || strcmp(argv[3], "-d") != 0 || strcmp(argv[5], "-o") != 0) {
-			printf("Invalid arguements to sort\n");
-			return 0;
-		}
-
-		strcpy(sortColumn, argv[2]);
-		strcpy(readDirName, argv[4]);
-		strcpy(outputDirName, argv[6]);
-	}
-
-	//program called with unrecognized number of arguements
-	else {
-		printf("Invalid arguements to sort\n");
-		return 0;
-	}
-
-	sem_init(&semaphore, 0, 1);
-
-	
-
-	globalListStart = createRow();
-	globalListEnd = globalListStart;
-
-	char parms[2][1000];
-	strcpy(parms[0], readDirName);
-	strcpy(parms[1], sortColumn);
-	goThroughDir(parms);
-	
-	char writeFile[99999];
-	strcpy(writeFile, outputDirName);
-	strcat(writeFile, "/AllFiles-sorted-");
-	strcat(writeFile, sortColumn);
-	strcat(writeFile, ".csv");
-
-	//printf("read: %s, write: %s\n", filename, writeFile);
-	FILE *fp;
-	fp = fopen(writeFile, "w+");
-
-	row *currRow;
-	currRow = mergesort(globalListStart->next);
-	row *prevRow;
-	while (currRow != NULL) {
-		int i;
-		for (i = 0; i < currRow->numCols; i++) {
-			fputs(currRow->columns[i], fp);
-			fputs(",", fp);
-		}
-
-		fputs("\n", fp);
-		prevRow = currRow;
-		currRow = currRow->next;
-		free(prevRow);
-	}
-
-	free(globalListStart);
-	fclose(fp);
-
-
-	if (getpid() == root) {
-		printf("Initial PID: %d\n", root);
-		
-		printf("PIDS of all child processes: ");
-		int i;
-		for (i = 0; i < pi; i++) {
-			printf("%d, ", pids[i]);
-		}
-
-		printf("\nTotal number of processes: %d\n", countForks + 1);
-		//printf("pi: %d\n", pi);
-	}
-	
-	
-	return 0;
-}
-
-
-void* goThroughCSV(void * params) {
-
-
-	//increment thread counter
-	//add thread id to array
-
-	char readName[99999];
-	char **	temp = (char **) params;
-	strcat(readName, temp[0]);
-	strcat(readName, "/");
-	strcat(readName, temp[1]);
-
-	sort(readName, temp[2], temp[1]);
-}
-
-void* goThroughDir(void * dirParams) {
-
-	char ** temp = (char **) dirParams;
-
-	char readDirName[99999];
-	strcpy(readDirName, temp[0]);
-
-	char sortColumn[99999];
-	strcpy(sortColumn, temp[1]);
+int pc = 0; 
+pid_t p;
 
 // allocates memory for subpaths and also appends /
 char* pathcat(const char* str1,const char* str2){ 
@@ -182,65 +52,6 @@ void pcounter(char* path){ // , char* colsort
     }
 }
 
-void goThroughDir(char readDirName[], char outputDirName[], char sortColumn[]) {
-	//printf("read: %s, write: %s, sort: %s\n", readDirName, outputDirName, sortColumn);
-	DIR *dir;
-	struct dirent *entry;
-
-	int i = 0;
-	if ((dir = opendir(readDirName)) != NULL) {
-		//increment tid
-		//add tid to array
-
-		while ((entry = readdir(dir)) != NULL) {
-			char entryName[256];
-			strcpy(entryName, entry->d_name);
-
-			//printf("entryName: %s, entry: %s", entryName, entry);
-			if (isCSV(entryName)) {
-
-				char params[3][99999];
-				strcpy(params[0], readDirName);
-				strcpy(params[1], entryName);
-				strcpy(params[2], sortColumn);
-				
-				sem_wait(&semaphore);
-				pthread_t tid = i;
-				i++;
-				sem_post(&semaphore);
-
-				pthread_create(&tid, NULL, &goThroughCSV, params);
-				//call go through CSV function
-
-			}
-
-			else if (okayDir(entryName)) {
-				//increment thread counter
-				//add thread id to array
-
-				char readDir[99999];
-				strcat(readDir, readDirName);
-				strcat(readDir, "/");
-				strcat(readDir, entryName);
-
-				//create thread, pass goThroughDir(readDir, sortColumn);
-				char params[2][99999];
-				strcpy(params[0], readDirName);
-				strcpy(params[1], sortColumn);
-
-				sem_wait(&semaphore);
-				pthread_t tid = i;
-				i++;
-				sem_post(&semaphore);
-
-				pthread_create(&tid, NULL, &goThroughDir, params);
-			} 
-
-			closedir(dir);
-		}
-	}
-}
-
 int isCSV(char filename[]) {
 	int l = strlen(filename);
 	//printf("filename: %s", filename);
@@ -256,6 +67,59 @@ int isCSV(char filename[]) {
 	return 0;
 }
 
+// checks to see if the desired column being sorted is inside the .csv header row
+int moviecsv(char* path, char* colsort){
+
+	int i;
+	int n;
+	int length;
+
+	// opens csv subpath file	
+	FILE *dir = fopen(path, "r");
+	
+	// allocates space to retrieve column header
+	const int MAXSIZE = 1024;
+	char* header = (char*)malloc(MAXSIZE);
+	fgets(header, MAXSIZE, dir);
+
+	// allocates space for each column name as token
+	char* token = malloc(MAXSIZE/10);
+	token = strtok(header, ",");
+
+	// allocates space for each row (rows[i])
+	char** rows = (char**)malloc(sizeof(char*)*(strlen(header)));
+	rows[0] = token;
+
+	// counter to check the # of columns
+	int colcount = 1;
+	while(token == strtok(NULL, ",")){
+		rows[colcount++] = token;	
+	}
+
+	length = strlen(rows[colcount - 1]);
+	i = 1;
+	
+	// Appends the header tokens with \0 for strcmp.
+	while(rows[colcount - 1][length - i] >= 7 && rows[colcount - 1][length - i] <= 13){
+		rows[colcount - 1][length - i] = '\0';
+		i++;
+	}
+
+	// increments n until input column is found
+	for(n = 0; n < colcount; n++){
+		if(strcmp(rows[n], colsort) == 0){
+			return 1;
+		}
+	}
+
+	// returns 0 (false) if input sorting column is not found
+	if(n == colcount){
+		return 0;
+	}
+
+	return 1; 
+}
+
 int okayDir(char filename[]) {
 	if (filename[0] == '.' && filename[1] == '.') {
 		return 0;
@@ -268,7 +132,7 @@ int okayDir(char filename[]) {
 	return 1;
 }
 
-void sort(char filename[], char sortColumn[], char entryName[]) {
+void sort(char filename[], char outputDirName[], char sortColumn[], char entryName[]) {
 	//printf("in sort\n");
 	int foundColumn = 0;
 	row *columnHeaders;
@@ -302,30 +166,30 @@ void sort(char filename[], char sortColumn[], char entryName[]) {
 				foundColumn = 1;
 				colCompare = currRow->numCols;
 			}
-
+		
 			while (word[0] && word[0] == '"' && word[strlen(word) - 1] && word[strlen(word) - 1] != '"') {
+					
+					char * newStr;
+					newStr = malloc(strlen(word) + 1);
+					newStr[0] = '\0';
+					strcat(newStr, word);
 
-				char * newStr;
-				newStr = malloc(strlen(word) + 1);
-				newStr[0] = '\0';
-				strcat(newStr, word);
+					word = strsep(&string, delim);
+					char * newStr2;
+					newStr2 = malloc(strlen(word) + 1);
+					newStr2[0] = '\0';
+					strcat(newStr2, word);
 
-				word = strsep(&string, delim);
-				char * newStr2;
-				newStr2 = malloc(strlen(word) + 1);
-				newStr2[0] = '\0';
-				strcat(newStr2, word);
-
-				char * wholeWord;
-				wholeWord = malloc(strlen(newStr) + strlen(newStr2) + 1);
-				wholeWord[0] = '\0';
-				strcat(wholeWord, newStr);
-				strcat(wholeWord, newStr2);
+					char * wholeWord;
+					wholeWord = malloc(strlen(newStr) + strlen(newStr2) + 1);
+					wholeWord[0] = '\0';
+					strcat(wholeWord, newStr);
+					strcat(wholeWord, newStr2);
 				
-				word =  malloc(strlen(wholeWord) + 1);
-				word[0] = '\0';
-				strcat(word, wholeWord);
-			}
+					word =  malloc(strlen(wholeWord) + 1);
+					word[0] = '\0';
+					strcat(word, wholeWord);
+				}
 
 			trim(word);
 
@@ -359,16 +223,38 @@ void sort(char filename[], char sortColumn[], char entryName[]) {
 		currRow = currRow->next;
 	}
 
+	fclose(fp);
+
+	char writeFile[99999];
+	strcpy(writeFile, outputDirName);
+	strcat(writeFile, "/");
+	strncat(writeFile, entryName, strlen(entryName) - 4);
+	strcat(writeFile, "-sorted-");
+	strcat(writeFile, sortColumn);
+	strcat(writeFile, ".csv");
+
+	//printf("read: %s, write: %s\n", filename, writeFile);
+	fp = fopen(writeFile, "w+");
+
 	free(currRow);
 	prevRow->next = NULL;
 
-	fclose(fp);
+	currRow = mergesort(columnHeaders->next);
+	while (currRow != NULL) {
+		int i;
+		for (i = 0; i < currRow->numCols; i++) {
+			fputs(currRow->columns[i], fp);
+			fputs(",", fp);
+		}
 
-	//create locks around this part
-	sem_wait(&semaphore);
-	globalListEnd->next = columnHeaders->next;
-	globalListEnd = prevRow;
-	sem_post(&semaphore);
+		fputs("\n", fp);
+		prevRow = currRow;
+		currRow = currRow->next;
+		free(prevRow);
+	}
+
+	free(columnHeaders);
+	fclose(fp);
 }
 
 row *createRow() {
@@ -408,6 +294,84 @@ void trim(char * word) {
 	}
 
 	word[index + 1] = '\0';
+}
+
+void goThroughDir(char readDirName[], char outputDirName[], char sortColumn[]) {
+	//printf("read: %s, write: %s, sort: %s\n", readDirName, outputDirName, sortColumn);
+	DIR *dir;
+	struct dirent *entry;
+
+	if ((dir = opendir(readDirName)) != NULL) {
+		pid_t pid = 1;
+
+		while ((entry = readdir(dir)) != NULL) {
+			char entryName[256];
+			strcpy(entryName, entry->d_name);
+
+			//printf("entryName: %s, entry: %s", entryName, entry);
+			if (isCSV(entryName)) {
+				//printf("sorting: %s\n", entryName);
+				countForks += 1;
+				pid = fork();
+				//printf("sorting, forked, pid: %d\n", pid);
+				if (pid == 0) {
+					//printf("%d, ", getpid());
+					pids[pi] = getpid();
+					pi++;
+
+					char outputDirName1[99999];
+					if (outputDirName[0] != '/') {
+						//strcat(outputDirName1, "../");
+					}
+					strcat(outputDirName1, outputDirName);
+
+					char readName[99999];
+					strcat(readName, readDirName);
+					strcat(readName, "/");
+					strcat(readName, entryName);
+					
+					//printf("sorting: %s, write: %s, sort: %s\n", entryName, outputDirName1, sortColumn);
+					sort(readName, outputDirName1, sortColumn, entryName);
+					return;
+				}
+			}
+			else if (okayDir(entryName)) {
+				countForks += 1;
+				pid = fork();
+				//printf("going to subdir, pid: %d\n", pid);
+				if (pid == 0) {
+					//printf("%d, ", getpid());
+					pids[pi] = getpid();
+					pi++;
+
+					char outputDirName2[99999];
+					if (outputDirName[0] != '/') {
+						//strcat(outputDirName2, "../");
+					}
+					//printf("%d, ", getpid());
+					strcat(outputDirName2, outputDirName);
+					
+					char readDir[99999];
+					strcat(readDir, readDirName);
+					strcat(readDir, "/");
+					strcat(readDir, entryName);
+					
+					goThroughDir(readDir, outputDirName2, sortColumn);
+					return;
+				} 
+			}
+		}
+
+        pid_t waitid;
+    while ((waitid = wait(NULL)) > 0){        
+       continue;
+    }
+		closedir(dir);
+	}
+	else {
+		//printf("Couldn't open dir: %s\n", readDirName);
+		//countForks--;
+	}
 }
 
 int main(int argc, char** argv) {
@@ -532,18 +496,26 @@ int main(int argc, char** argv) {
 	int troot = pthread_self();
 	printf("Initial TID: %d\n", troot); // just to test out initial thread
 
-	
+	/*
 	if (getpid() == root) {
 		printf("Initial PID: %d\n", root);
 		printf("PIDS of all child processes: ");
 	}
+	*/
+
+	goThroughDir(readDirName, outputDirName, sortColumn);
 	
-	char params[3][999999];
-	strcpy(params[0], readDirName);
-	strcpy(params[1], outputDirName);
-	strcpy(params[2], sortColumn);
-	goThroughDir(params);
+	if (getpid() == root) {
+		printf("Initial PID: %d\n", root);
+		
+		printf("PIDS of all child processes: ");
+		int i;
+		for (i = 0; i < pi; i++) {
+			printf("%d, ", pids[i]);
+		}
+		pcounter(readDirName);
+		printf("\nTotal number of threads: %d\n", pc+1);
+	}
 	
 	return 0;
 }
-/*
