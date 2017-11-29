@@ -1,5 +1,7 @@
 #define _GNU_SOURCE
 
+#include  <sys/wait.h>
+#include  <sys/types.h>
 #include <semaphore.h>
 #include <pthread.h>
 #include <stddef.h>
@@ -48,83 +50,6 @@ void pcounter(char* path){ // , char* colsort
             pc++;
 	}
     }
-}
-
-void goThroughDir(char readDirName[], char outputDirName[], char sortColumn[]) {
-	//printf("read: %s, write: %s, sort: %s\n", readDirName, outputDirName, sortColumn);
-	DIR *dir;
-	struct dirent *entry;
-
-	if ((dir = opendir(readDirName)) != NULL) {
-		pid_t pid = 1;
-
-		while ((entry = readdir(dir)) != NULL) {
-			char entryName[256];
-			strcpy(entryName, entry->d_name);
-
-			//printf("entryName: %s, entry: %s", entryName, entry);
-			if (isCSV(entryName)) {
-				//printf("sorting: %s\n", entryName);
-				countForks += 1;
-				pid = fork();
-				//printf("sorting, forked, pid: %d\n", pid);
-				if (pid == 0) {
-					//printf("%d, ", getpid());
-					pids[pi] = getpid();
-					pi++;
-
-					char outputDirName1[99999];
-					if (outputDirName[0] != '/') {
-						//strcat(outputDirName1, "../");
-					}
-					strcat(outputDirName1, outputDirName);
-
-					char readName[99999];
-					strcat(readName, readDirName);
-					strcat(readName, "/");
-					strcat(readName, entryName);
-					
-					//printf("sorting: %s, write: %s, sort: %s\n", entryName, outputDirName1, sortColumn);
-					sort(readName, outputDirName1, sortColumn, entryName);
-					return;
-				}
-			}
-			else if (okayDir(entryName)) {
-				countForks += 1;
-				pid = fork();
-				//printf("going to subdir, pid: %d\n", pid);
-				if (pid == 0) {
-					//printf("%d, ", getpid());
-					pids[pi] = getpid();
-					pi++;
-
-					char outputDirName2[99999];
-					if (outputDirName[0] != '/') {
-						//strcat(outputDirName2, "../");
-					}
-					strcat(outputDirName2, outputDirName);
-					
-					char readDir[99999];
-					strcat(readDir, readDirName);
-					strcat(readDir, "/");
-					strcat(readDir, entryName);
-					
-					goThroughDir(readDir, outputDirName2, sortColumn);
-					return;
-				} 
-			}
-		}
-
-		if (pid == 0) {
-			//wait();
-		}
-
-		closedir(dir);
-	}
-	else {
-		//printf("Couldn't open dir: %s\n", readDirName);
-		//countForks--;
-	}
 }
 
 int isCSV(char filename[]) {
@@ -318,6 +243,84 @@ void trim(char * word) {
 	word[index + 1] = '\0';
 }
 
+void goThroughDir(char readDirName[], char outputDirName[], char sortColumn[]) {
+	//printf("read: %s, write: %s, sort: %s\n", readDirName, outputDirName, sortColumn);
+	DIR *dir;
+	struct dirent *entry;
+
+	if ((dir = opendir(readDirName)) != NULL) {
+		pid_t pid = 1;
+
+		while ((entry = readdir(dir)) != NULL) {
+			char entryName[256];
+			strcpy(entryName, entry->d_name);
+
+			//printf("entryName: %s, entry: %s", entryName, entry);
+			if (isCSV(entryName)) {
+				//printf("sorting: %s\n", entryName);
+				countForks += 1;
+				pid = fork();
+				//printf("sorting, forked, pid: %d\n", pid);
+				if (pid == 0) {
+					//printf("%d, ", getpid());
+					pids[pi] = getpid();
+					pi++;
+
+					char outputDirName1[99999];
+					if (outputDirName[0] != '/') {
+						//strcat(outputDirName1, "../");
+					}
+					strcat(outputDirName1, outputDirName);
+
+					char readName[99999];
+					strcat(readName, readDirName);
+					strcat(readName, "/");
+					strcat(readName, entryName);
+					
+					//printf("sorting: %s, write: %s, sort: %s\n", entryName, outputDirName1, sortColumn);
+					sort(readName, outputDirName1, sortColumn, entryName);
+					return;
+				}
+			}
+			else if (okayDir(entryName)) {
+				countForks += 1;
+				pid = fork();
+				//printf("going to subdir, pid: %d\n", pid);
+				if (pid == 0) {
+					//printf("%d, ", getpid());
+					pids[pi] = getpid();
+					pi++;
+
+					char outputDirName2[99999];
+					if (outputDirName[0] != '/') {
+						//strcat(outputDirName2, "../");
+					}
+					//printf("%d, ", getpid());
+					strcat(outputDirName2, outputDirName);
+					
+					char readDir[99999];
+					strcat(readDir, readDirName);
+					strcat(readDir, "/");
+					strcat(readDir, entryName);
+					
+					goThroughDir(readDir, outputDirName2, sortColumn);
+					return;
+				} 
+			}
+		}
+
+        pid_t waitid;
+    while ((waitid = wait(NULL)) > 0){        
+       continue;
+    }
+		closedir(dir);
+	}
+	else {
+		//printf("Couldn't open dir: %s\n", readDirName);
+		//countForks--;
+	}
+}
+
 int main(int argc, char** argv) {
 	char readDirName[1000];
 	char outputDirName[1000];
@@ -457,8 +460,8 @@ int main(int argc, char** argv) {
 		for (i = 0; i < pi; i++) {
 			printf("%d, ", pids[i]);
 		}
-		pcounter(".");
-		printf("\nTotal # processes: %d\n", pc+1);
+		pcounter(readDirName);
+		printf("\nTotal number of threads: %d\n", pc+1);
 	}
 	
 	return 0;
