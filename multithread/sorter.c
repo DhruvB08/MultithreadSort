@@ -124,15 +124,20 @@ int main(int argc, char** argv) {
 		return 0;
 	}
 
+	printf("initializing global\n");
 	//initialize globals
 	sem_init(&semaphore, 0, 1);
 	globalListStart = createRow();
 	globalListEnd = globalListStart;
+	printf("done initializing\n");
 
 	char parms[2][1000];
 	strcpy(parms[0], readDirName);
 	strcpy(parms[1], sortColumn);
-	goThroughDir(parms);
+	
+	printf("first gothroughdir about to be called\n");
+	goThroughDir((void *) parms);
+	printf("gothroughdir all done in main\n");
 	
 	char writeFile[99999];
 	strcpy(writeFile, outputDirName);
@@ -188,17 +193,19 @@ void* goThroughCSV(void * params) {
 
 void* goThroughDir(void * dirParams) {
 
-	char ** temp = (char **) dirParams;
+	char *temp[2][9999] = (char *) dirParams;
+	printf("did dirParams right\n");
 
 	char readDirName[99999];
-	strcpy(readDirName, temp[0]);
+	strcpy(readDirName, *temp[0]);
 
 	char sortColumn[99999];
-	strcpy(sortColumn, temp[1]);
+	strcpy(sortColumn, *temp[1]);
 
 	DIR *dir;
 	struct dirent *entry;
 
+	printf("about to open directory\n");
 	int i = 0;
 	if ((dir = opendir(readDirName)) != NULL) {
 		//increment tid
