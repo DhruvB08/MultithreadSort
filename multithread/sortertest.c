@@ -67,6 +67,59 @@ int isCSV(char filename[]) {
 	return 0;
 }
 
+// checks to see if the desired column being sorted is inside the .csv header row
+int moviecsv(char* path, char* colsort){
+
+	int i;
+	int n;
+	int length;
+
+	// opens csv subpath file	
+	FILE *dir = fopen(path, "r");
+	
+	// allocates space to retrieve column header
+	const int MAXSIZE = 1024;
+	char* header = (char*)malloc(MAXSIZE);
+	fgets(header, MAXSIZE, dir);
+
+	// allocates space for each column name as token
+	char* token = malloc(MAXSIZE/10);
+	token = strtok(header, ",");
+
+	// allocates space for each row (rows[i])
+	char** rows = (char**)malloc(sizeof(char*)*(strlen(header)));
+	rows[0] = token;
+
+	// counter to check the # of columns
+	int colcount = 1;
+	while(token == strtok(NULL, ",")){
+		rows[colcount++] = token;	
+	}
+
+	length = strlen(rows[colcount - 1]);
+	i = 1;
+	
+	// Appends the header tokens with \0 for strcmp.
+	while(rows[colcount - 1][length - i] >= 7 && rows[colcount - 1][length - i] <= 13){
+		rows[colcount - 1][length - i] = '\0';
+		i++;
+	}
+
+	// increments n until input column is found
+	for(n = 0; n < colcount; n++){
+		if(strcmp(rows[n], colsort) == 0){
+			return 1;
+		}
+	}
+
+	// returns 0 (false) if input sorting column is not found
+	if(n == colcount){
+		return 0;
+	}
+
+	return 1; 
+}
+
 int okayDir(char filename[]) {
 	if (filename[0] == '.' && filename[1] == '.') {
 		return 0;
