@@ -1,4 +1,4 @@
-#include "sorter.h"
+#include "sorter_thread.h"
 
 row * mergesort(row * head) {
 	if (head == NULL) {
