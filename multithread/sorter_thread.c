@@ -214,7 +214,7 @@ int main(int argc, char** argv) {
 	free(globalListStart);
 	fclose(fp);
 
-	printf("Initial TID: %d\n", pthread_self());
+	printf("Initial PID: %d\n", getpid());
 
 	printf("TIDS of all child threads: ");
 	int j;
