@@ -127,8 +127,12 @@ int main(int argc, char** argv) {
 	//printf("initializing global\n");
 	//initialize globals
 	sem_init(&semaphore, 0, 1);
-	globalListStart = createRow();
-	globalListEnd = globalListStart;
+	
+	int ini;
+	for (ini = 0; ini < 9999; ini++) {
+		allRows[ini] = createRow();
+	}
+	
 	//printf("done initializing\n");
 
 	struct argstruct *temp = (struct argstruct*)malloc(sizeof(struct argstruct));			
@@ -141,7 +145,9 @@ int main(int argc, char** argv) {
 	*/
 	
 	//printf("first gothroughdir about to be called\n");
-	goThroughDir((void *) temp);
+	pthread_t first = 0;
+	pthread_create(&first, NULL, &goThroughDir, (void *) temp);
+	pthread_join(first, NULL);
 	//printf("gothroughdir all done in main\n");
 	
 	char writeFile[99999];
@@ -154,10 +160,44 @@ int main(int argc, char** argv) {
 	FILE *fp;
 	fp = fopen(writeFile, "w+");
 
+	globalListStart = allRows[0];
+	globalListStart->next = allRows[1];
+	globalListEnd = globalListStart;
+
+	int q;
+	for (q = 1; q < 9998; q++) {
+		//printf("%d\n", q);
+		if (allRows[q] == NULL) {
+			continue;
+		}
+
+		row *ptr;
+		ptr = allRows[q];
+		row *prev;
+
+		while (ptr != NULL) {
+			prev = ptr;
+			ptr = ptr->next;
+			//printf("stuck in while loop\n");
+		}
+
+		prev->next = allRows[q + 1];
+	}
+
 	row *currRow;
-	currRow = mergesort(globalListStart->next);
+	//printf("started sort\n");
+	currRow = globalListStart;
+	currRow->next = mergesort(globalListStart->next);
+	//printf("finished sort\n");
 	row *prevRow;
 	while (currRow != NULL) {
+		if (currRow->numCols < 2) {
+			prevRow = currRow;
+			currRow = currRow->next;
+			free(prevRow);
+			continue;
+		}
+
 		int i;
 		for (i = 0; i < currRow->numCols; i++) {
 			fputs(currRow->columns[i], fp);
@@ -170,22 +210,26 @@ int main(int argc, char** argv) {
 		free(prevRow);
 	}
 
+	//printf("going to free start\n");
 	free(globalListStart);
 	fclose(fp);
 
 	printf("Initial TID: %d\n", pthread_self());
 
 	printf("TIDS of all child threads: ");
-	//for loop to go through TID array
+	int j;
+	for (j = 0; j < i; j++) {
+		printf("%d, ", tids[j]);
+	}
 
-	printf("\nTotal number of threads: \n");
+	printf("\nTotal number of threads: %d\n", i);
 	return 0;
 }
 
 
 void* goThroughCSV(void * params) {
-	//increment thread counter
-	//add thread id to array
+	//printf("going to go through csv\n");
+
 	struct argstruct *temp = params;
 	
 	char readName[99999];
@@ -193,10 +237,16 @@ void* goThroughCSV(void * params) {
 	strcat(readName, "/");
 	strcat(readName, temp->arg2);
 	
+	//printf("going to go through csv: %s\n, readName);
 	sort(readName, temp->arg3, temp->arg2);
 }
 
 void* goThroughDir(void * dirParams) {
+
+	sem_wait(&semaphore);
+	tids[i] = pthread_self();
+	i++;
+	sem_post(&semaphore);
 
 	struct argstruct* temp = dirParams;
 	
@@ -218,6 +268,13 @@ void* goThroughDir(void * dirParams) {
 	if ((dir = opendir(readDirName)) != NULL) {
 		//increment tid
 		//add tid to array
+
+		/*
+		sem_wait(&semaphore);
+		tids[i] = pthread_self();
+		i++;
+		sem_post(&semaphore);
+		*/
 
 		//printf("reading dir: %s\n", readDirName);
 
@@ -243,10 +300,15 @@ void* goThroughDir(void * dirParams) {
 				
 				sem_wait(&semaphore);
 				pthread_t tid = i;
-				i++;
 				sem_post(&semaphore);
 
-				pthread_create(&tid, NULL, &goThroughCSV, (void*)csvtemp);
+				int res = pthread_create(&tid, NULL, &goThroughCSV, (void*)csvtemp);
+				pthread_join(tid, NULL);
+				/*
+				while (res != 0) {
+					printf("failed creating thread for CSV, %d\n", i);
+					res = pthread_create(&tid, NULL, &goThroughCSV, (void *) csvtemp);
+				}*/
 			}
 
 			else if (okayDir(entryName)) {
@@ -269,10 +331,15 @@ void* goThroughDir(void * dirParams) {
 
 				sem_wait(&semaphore);
 				pthread_t tid = i;
-				i++;
 				sem_post(&semaphore);
 
-				pthread_create(&tid, NULL, &goThroughDir, (void*)dtemp);
+				int res = pthread_create(&tid, NULL, &goThroughDir, (void *) dtemp);
+				pthread_join(tid, NULL);
+				/*
+				while (res != 0) {
+					printf("failed creating thread for new dir, %d\n", i);
+					res = pthread_create(&tid, NULL, &goThroughDir, (void *) dtemp);
+				}*/
 			} 
 		}
 
@@ -308,10 +375,12 @@ int okayDir(char filename[]) {
 }
 
 void sort(char filename[], char sortColumn[], char entryName[]) {
-	//printf("in sort\n");
+	//sem_wait(&semaphore);
+
 	int foundColumn = 0;
 	row *columnHeaders;
 	columnHeaders = createRow();
+	//globalListEnd = columnHeaders;
 
 	row *prevRow;
 	row *currRow;
@@ -382,11 +451,13 @@ void sort(char filename[], char sortColumn[], char entryName[]) {
 
 		if (!foundColumn) {
 			//printf("read: %s, write: %s, failed sort on: %s\n", filename, outputDirName, sortColumn);
+			//printf("bad CSV\n");
 			return;
 		}
 
 		if (prevRow != NULL && prevRow->numCols != currRow->numCols && currRow->numCols != 1) {
 			//printf("failed getting data at: %s\n", filename);
+			//printf("bad CSV\n");
 			return;
 		}
 
@@ -403,10 +474,14 @@ void sort(char filename[], char sortColumn[], char entryName[]) {
 
 	fclose(fp);
 
-	//create locks around this part
 	sem_wait(&semaphore);
-	globalListEnd->next = columnHeaders->next;
-	globalListEnd = prevRow;
+	//printf("CSVs: %d\n", numCSVs);
+	allRows[0] = columnHeaders;
+	allRows[numCSVs] = columnHeaders->next;
+	numCSVs++;
+
+	tids[i] = pthread_self();
+	i++;
 	sem_post(&semaphore);
 }
 

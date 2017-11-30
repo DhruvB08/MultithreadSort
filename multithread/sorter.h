@@ -22,6 +22,9 @@ typedef struct row_ {
 } row;
 
 int i = 0;
+pthread_t tids[99999];
+row *allRows[9999];
+int numCSVs = 1;
 
 int filesHave;
 int filesNeed;
